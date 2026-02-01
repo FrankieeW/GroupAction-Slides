@@ -1,0 +1,933 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Formalizing Group Action in Lean
+% LaTeX Beamer Presentation
+% MATH70040 Formalising Mathematics
+%
+%!TEX program = xelatex
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%----------------------------------------------------------------------------------------
+%	CLASS, PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
+%----------------------------------------------------------------------------------------
+
+\documentclass[
+	aspectratio=169,
+	t,
+	onlytextwidth,
+	10pt,
+]{beamer}
+
+\usetheme{Imperial}
+
+% Override monospaced font to support Unicode math symbols in code
+% (e.g., ∀, ∃, →) that appear in Lean snippets
+% Reset fontspec Path so system fonts can be found
+\defaultfontfeatures{Ligatures=TeX,Path=}
+\IfFontExistsTF{FreeMono}{
+  \setmonofont{FreeMono}[Scale=MatchLowercase]
+}{
+  \setmonofont{Imperial Sans Text}[Scale=MatchLowercase]
+}
+
+%----------------------------------------------------------------------------------------
+%	REQUIRED PACKAGES FOR CODE AND MATH
+%----------------------------------------------------------------------------------------
+
+% Code highlighting with minted for Lean4
+\usepackage{minted}
+\usemintedstyle{pastie}
+\setminted{
+	fontsize=\small,
+	linenos=true,
+	python3=true,
+	breaklines=true,
+	frame=lines,
+}
+
+% Math packages
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathtools}
+
+% Additional utilities
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{changepage}
+
+% For code snippets
+% (listings removed; minted is used for Lean code blocks)
+
+%----------------------------------------------------------------------------------------
+%	CUSTOM COMMANDS FOR PRESENTATIONS
+%----------------------------------------------------------------------------------------
+
+% GitHub URL helper for code references
+\newcommand{\githuburl}[2]{%
+	\href{https://github.com/ffwcheng/group-action/tree/#1/src#2}{\texttt{#2}}%
+}
+
+% Lean code inline
+\newcommand{\leancode}[1]{\texttt{\small #1}}
+
+% Two-column layout helper (math vs code)
+\newcommand{\mathvscode}[4]{
+	\begin{columns}[T]
+		\begin{column}{0.48\linewidth}
+			\textbf{Mathematics}\\[0.3em]
+			#1
+		\end{column}
+		\begin{column}{0.48\linewidth}
+			\textbf{Lean 4 Code}\\[0.3em]
+			#2
+		\end{column}
+	\end{columns}
+}
+
+% Theorem definition
+\newcommand{\thmbox}[2]{
+	\fbox{\begin{minipage}{\dimexpr\linewidth-2\fboxsep-2\fboxrule}
+	\textbf{#1}\\[0.5em]
+	#2
+	\end{minipage}}
+}
+
+%----------------------------------------------------------------------------------------
+%	PRESENTATION METADATA
+%----------------------------------------------------------------------------------------
+
+\title{Formalizing Group Action in Lean}
+\subtitle{Project 1: Group Actions in Lean 4}
+\author{Frankie Feng-Cheng WANG}
+\institute{Department of Mathematics, Imperial College London}
+\date{MATH70040 Formalising Mathematics}
+
+% Additional metadata for title slide
+\newcommand{\course}{MATH70040 Formalising Mathematics}
+\newcommand{\githublink}{https://github.com/FrankieeW/GroupAction}
+
+%----------------------------------------------------------------------------------------
+%	DOCUMENT START
+%----------------------------------------------------------------------------------------
+
+\begin{document}
+
+%----------------------------------------------------------------------------------------
+%	TITLE SLIDE (ICLBlue background)
+%----------------------------------------------------------------------------------------
+
+\begingroup
+\setbeamercolor{background canvas}{bg=ICLBlue}
+\setbeamercolor{title page title}{fg=white}
+\setbeamercolor{title page subtitle}{fg=white}
+\setbeamercolor{author}{fg=white}
+\setbeamercolor{inst}{fg=white}
+\setbeamercolor{date}{fg=white}
+\setbeamertemplate{title page}[logo]{ICL_Logo_White.pdf}
+\frame[plain, s]{\titlepage}
+\endgroup
+
+%----------------------------------------------------------------------------------------
+%	AGENDA SLIDE
+%----------------------------------------------------------------------------------------
+
+\begingroup
+\setbeamercolor{background canvas}{bg=ICLBlue}
+\setbeamercolor{normal text}{fg=white}\usebeamercolor[fg]{normal text}
+\setbeamercolor{page number in head/foot}{fg=white}
+
+\begin{frame}
+	\frametitle{\textcolor{white}{Outline}}
+	\begin{columns}[T]
+		\begin{column}{0.95\linewidth}
+			\Large
+			\vspace{0.5em}
+			\textbf{1. Introduction}\\
+			\quad Motivation \& Main Results\\[0.8em]
+
+			\textbf{2. Core Definitions}\\
+			\quad GroupAction, Faithful, Transitive\\[0.8em]
+
+			\textbf{3. Examples}\\
+			\quad Symmetric Group, $D_4$, and more\\[0.8em]
+
+			\textbf{4. Key Theorems}\\
+			\quad Theorem 16.3 (Permutation Representation) \& Theorem 16.12 (Stabilizer Subgroup)\\[0.8em]
+
+			\textbf{5. Reflection}\\
+			\quad Challenges \& Future Extensions
+		\end{column}
+	\end{columns}
+\end{frame}
+\endgroup
+
+%----------------------------------------------------------------------------------------
+%	SECTION 1: INTRODUCTION (2 slides)
+%----------------------------------------------------------------------------------------
+
+\begin{frame}
+	\frametitle{What is a Group Action?}
+
+	\textbf{Motivation:}
+	\begin{itemize}
+		\item Groups act on sets, formalizing \textit{symmetry}
+		\item Connects abstract algebra with concrete transformations
+		\item Foundation for orbit-stabilizer theorems, Burnside's lemma, etc.
+	\end{itemize}
+
+	\vspace{1em}
+
+	\textbf{Project Goals:}
+	\begin{itemize}
+		\item[\checkmark] Core Definitions: \leancode{GroupAction} typeclass, Faithful, Transitive
+		\item[\checkmark] Concrete Examples: Symmetric group, $D_4$, conjugation, etc.
+		\item[\checkmark] Key Theorems: Permutation representation (Thm 16.3), Stabilizer subgroup (Thm 16.12)
+	\end{itemize}
+
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}
+	\frametitle{Main Results}
+
+	\vspace{0.5em}
+
+	\thmbox{Theorem 16.3: Permutation Representation}{%
+		Every group action induces a group homomorphism $\phi: G \to \mathrm{Sym}(X)$
+	}
+
+	\vspace{1.5em}
+
+	\thmbox{Theorem 16.12: Stabilizer Subgroup}{%
+		For any $x \in X$, the stabilizer $G_x = \{g \in G \mid g \cdot x = x\}$ is a subgroup of $G$
+	}
+
+	\vspace{1.5em}
+
+	\small\textit{Both theorems are fully formalized in Lean 4 with explicit proofs.}
+
+\end{frame}
+
+%----------------------------------------------------------------------------------------
+%	SECTION 2: DEFINITIONS (3 slides)
+%----------------------------------------------------------------------------------------
+
+\begin{frame}[fragile]
+	\frametitle{Group Action Definition}
+	\framesubtitle{Mathematical Foundation}
+
+	\begin{columns}[T]
+		\begin{column}{0.48\linewidth}
+			\textbf{Mathematics}\\[0.5em]
+
+			A group $G$ \textbf{acts} on a set $X$ via a function
+			\[ \cdot: G \times X \to X \]
+
+			\textbf{Axioms:}
+			\begin{enumerate}
+				\item \textbf{Associativity}: $(g_1 g_2) \cdot x = g_1 \cdot (g_2 \cdot x)$
+				      \smallskip
+				\item \textbf{Identity}: $1 \cdot x = x$
+			\end{enumerate}
+
+			\vspace{0.5em}
+			for all $g_1, g_2 \in G, x \in X$
+		\end{column}
+		\begin{column}{0.48\linewidth}
+			\textbf{Lean 4 Code}\\[0.5em]
+
+			\begin{minted}[fontsize=\tiny,linenos=false]{lean}
+class GroupAction (G : Type*) 
+    [Monoid G] (X : Type*) where
+  act : G → X → X
+  ga_mul : ∀ g₁ g₂ x, 
+    act (g₁ * g₂) x = 
+    act g₁ (act g₂ x)
+  ga_one : ∀ x, act 1 x = x
+			\end{minted}
+
+			\vspace{0.3em}
+			{\tiny Source: \githuburl{v1.2.1-lean-only}{/Defs.lean:15-22}}
+		\end{column}
+	\end{columns}
+
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}[fragile]
+	\frametitle{Orbits and Stabilizers}
+
+	% TODO: Define orbit and stabilizer sets
+	% - Orbit: Orb(x) = {g · x | g ∈ G}
+	% - Stabilizer: Stab(x) = {g ∈ G | g · x = x}
+	% - Lean code for these definitions
+	% - Connection to equivalence classes
+
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}[fragile]
+	\frametitle{Faithful Actions}
+
+	\begin{columns}[T]
+		\begin{column}{0.48\linewidth}
+			\textbf{Mathematics}\\[0.5em]
+
+			An action is \textbf{faithful} if distinct group elements act differently.
+
+			\vspace{0.8em}
+
+			\textbf{Formally:}
+			\[ \forall g_1, g_2 \in G, \, (\forall x, g_1 \cdot x = g_2 \cdot x) \Rightarrow g_1 = g_2 \]
+
+			\vspace{0.8em}
+
+			\textbf{Intuition:} The action ``faithfully represents'' the group structure
+		\end{column}
+		\begin{column}{0.48\linewidth}
+			\textbf{Lean 4 Code}\\[0.5em]
+
+			\begin{minted}[fontsize=\tiny,linenos=false]{lean}
+def GroupAction.faithful 
+    {G : Type*} [Group G] 
+    {X : Type*} 
+    [GroupAction G X] : Prop :=
+  ∀ g₁ g₂ : G,
+    (∀ x : X, 
+      GroupAction.act g₁ x = 
+      GroupAction.act g₂ x) → 
+    g₁ = g₂
+			\end{minted}
+
+			\vspace{0.3em}
+			{\tiny Source: \githuburl{v1.2.1-lean-only}{/Defs.lean:26-28}}
+		\end{column}
+	\end{columns}
+
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}[fragile]
+	\frametitle{Transitive Actions}
+
+	\begin{columns}[T]
+		\begin{column}{0.48\linewidth}
+			\textbf{Mathematics}\\[0.5em]
+
+			An action is \textbf{transitive} if any element can be moved to any other.
+
+			\vspace{0.8em}
+
+			\textbf{Formally:}
+			\[ \forall x_1, x_2 \in X, \exists g \in G, \, g \cdot x_1 = x_2 \]
+
+			\vspace{0.8em}
+
+			\textbf{Intuition:} The group ``acts transitively'' on the entire set
+		\end{column}
+		\begin{column}{0.48\linewidth}
+			\textbf{Lean 4 Code}\\[0.5em]
+
+			\begin{minted}[fontsize=\tiny,linenos=false]{lean}
+def GroupAction.transitive 
+    {G : Type*} [Group G] 
+    {X : Type*} 
+    [GroupAction G X] : Prop :=
+  ∀ x₁ x₂ : X, 
+    ∃ g : G, 
+      GroupAction.act g x₁ = x₂
+			\end{minted}
+
+			\vspace{0.3em}
+			{\tiny Source: \githuburl{v1.2.1-lean-only}{/Defs.lean:33-35}}
+		\end{column}
+	\end{columns}
+
+\end{frame}
+
+%----------------------------------------------------------------------------------------
+%	SECTION 3: EXAMPLES (7 slides)
+%----------------------------------------------------------------------------------------
+
+\begin{frame}[fragile]
+	\frametitle{Example 1: Symmetric Group on $X$}
+
+	$\mathrm{Sym}(X)$ acts on $X$ by applying permutations.
+
+	\vspace{0.8em}
+
+	\begin{minted}[fontsize=\tiny,linenos=false]{lean}
+instance permGroupAction (X : Type*) : GroupAction (Equiv.Perm X) X :=
+  { act := fun g x => g x
+    ga_mul := by intro g1 g2 x; rfl
+    ga_one := by intro x; rfl }
+	\end{minted}
+
+	\vspace{0.8em}
+
+	\textit{One of the most fundamental actions.}
+
+	{\tiny Source: \githuburl{v1.2.1-lean-only}{/Examples.lean:20-27}}
+
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}[fragile]
+	\frametitle{Example 1: Symmetric Group Properties}
+	\framesubtitle{Faithful \& Transitive}
+
+	\begin{columns}[T]
+		\begin{column}{0.48\linewidth}
+			\textbf{Faithful}\\[0.3em]
+
+			\begin{minted}[fontsize=\tiny,linenos=false]{lean}
+theorem permFaithful (X : Type*) [Nonempty X] :
+    faithful (Equiv.Perm X) X := by
+  intro g1 g2 h
+  ext x
+  have := h x
+  exact this
+			\end{minted}
+		\end{column}
+		\begin{column}{0.48\linewidth}
+			\textbf{Transitive}\\[0.3em]
+
+			\begin{minted}[fontsize=\tiny,linenos=false]{lean}
+theorem permTransitive (X : Type*) [Nonempty X] :
+    transitive (Equiv.Perm X) X := by
+  intro x y
+  obtain ⟨z⟩ := ‹Nonempty X›
+  use Equiv.Perm.swap z x |>.trans 
+       (Equiv.Perm.swap z y)
+  simp
+			\end{minted}
+		\end{column}
+	\end{columns}
+
+	{\tiny Source: \githuburl{v1.2.1-lean-only}{/Examples.lean:29-44}}
+
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}[fragile]
+	\frametitle{Example 2: Left Multiplication}
+
+	$G$ acts on itself by left multiplication: $g_1 \cdot g_2 = g_1 * g_2$
+
+	\vspace{0.8em}
+
+	\begin{minted}[fontsize=\tiny,linenos=false]{lean}
+instance groupAsGSet (G : Type*) [Group G] : GroupAction G G :=
+  { act := fun g1 g2 => g1 * g2
+    ga_mul := by intro g1 g2 g3; rw [mul_assoc]
+    ga_one := by intro g; rw [one_mul] }
+	\end{minted}
+
+	\vspace{0.8em}
+
+	\small This action is \textbf{transitive} but \textbf{not faithful}.
+
+	{\tiny Source: \githuburl{v1.2.1-lean-only}{/Examples.lean:46-54}}
+
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}[fragile]
+	\frametitle{Example 3: Subgroup Action}
+
+	A subgroup $H \leq G$ acts on $G$ by left multiplication.
+
+	\vspace{0.8em}
+
+	\begin{minted}[fontsize=\tiny,linenos=false]{lean}
+instance subgroupAsGSet (G : Type*) [Group G] (H : Subgroup G) :
+    GroupAction H G :=
+  { act := fun ⟨h, _⟩ g => h * g
+    ga_mul := by intro ⟨h1,_⟩ ⟨h2,_⟩ g; simp; rw [mul_assoc]
+    ga_one := by intro g; simp; rw [one_mul] }
+	\end{minted}
+
+	\vspace{0.8em}
+
+	\small Coercion from \leancode{H} to \leancode{G} handled implicitly.
+
+		{\tiny Source: \githuburl{v1.2.1-lean-only}{/Examples.lean:58-65}}
+
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}[fragile]
+	\frametitle{Example 4: Conjugation}
+
+	Conjugation: $h \cdot g = h g h^{-1}$
+
+	\vspace{0.6em}
+
+	\begin{minted}[fontsize=\tiny,linenos=false]{lean}
+instance conjugationAction (G : Type*) [Group G] : GroupAction G G :=
+  { act := fun g h => g * h * g⁻¹
+    ga_mul := fun g1 g2 g => by
+      calc g1 * g2 * g * (g1 * g2)⁻¹
+           = g1 * g2 * g * g2⁻¹ * g1⁻¹ := by rw [mul_inv_rev]
+           _ = g1 * (g2 * g * g2⁻¹) * g1⁻¹ := by rw [mul_assoc, mul_assoc]
+    ga_one := fun g => by simp }
+	\end{minted}
+
+	\vspace{0.6em}
+
+	\small Orbits are \textbf{conjugacy classes}; stabilizers are \textbf{centralizers}.
+
+	{\tiny Source: \githuburl{v1.2.1-lean-only}{/Examples.lean:67-78}}
+
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}[fragile]
+	\frametitle{Example 5: Scalar Action on $\mathbb{C}^n$}
+
+	$\mathbb{C}^\times$ acts on $\mathbb{C}^n$ by componentwise multiplication.
+
+	\vspace{0.6em}
+
+	\begin{minted}[fontsize=\tiny,linenos=false]{lean}
+instance complexScalarAction (n : ℕ) : 
+    GroupAction ℂ* (Fin n → ℂ) :=
+  { act := fun ⟨c, _⟩ v => fun i => c * v i
+    ga_mul := by intro ⟨c1,_⟩ ⟨c2,_⟩ v; ext i; ring
+    ga_one := by intro v; ext i; simp }
+	\end{minted}
+
+	\vspace{0.6em}
+
+	\small Uses \leancode{Fin n → ℂ} to represent $\mathbb{C}^n$ in Lean.
+
+		{\tiny Source: \githuburl{v1.2.1-lean-only}{/Examples.lean:82-92}}
+
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}[fragile]
+	\frametitle{Example 6: Dihedral Group $D_4$}
+
+	$D_4$ (symmetries of a square) acts on $\mathbb{Z}/4$ (vertices).
+
+	\vspace{0.4em}
+
+	\begin{minted}[fontsize=\tiny,linenos=false]{lean}
+abbrev D4 := DihedralGroup 4
+
+def d4Act : D4 → (Fin 4) → (Fin 4)
+  | .r k, v => ((v.val + k) % 4 : Fin 4)
+  | .sr k, v => ((k - v.val) % 4 : Fin 4)
+
+instance d4ActionZMod4 : GroupAction D4 (Fin 4) :=
+  { act := d4Act
+    ga_mul := by intro g1 g2 v; 
+      cases g1 <;> cases g2 <;> simp [d4Act]; ring_nf
+    ga_one := by intro v; simp [d4Act] }
+	\end{minted}
+
+	\vspace{0.4em}
+
+	\small \textbf{Geometric interpretation}: Rotations and reflections of square vertices.
+
+		{\tiny Source: \githuburl{v1.2.1-lean-only}{/Examples.lean:108-156}}
+
+\end{frame}
+
+%----------------------------------------------------------------------------------------
+%	SECTION 4: ORBITS & STABILIZERS (2 slides)
+%----------------------------------------------------------------------------------------
+
+\begin{frame}[fragile]
+	\frametitle{Orbit-Stabilizer Theorem Setup}
+	\framesubtitle{Relating |G|, |Orb(x)|, |Stab(x)|}
+
+	% TODO: State and explain the theorem
+	% - Theorem 16.3: |G| = |Orb(x)| · |Stab(x)|
+	% - Bijection between Stab(x) and G/Stab(x)
+	% - Lean type-theoretic formulation
+
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}[fragile]
+	\frametitle{Burnside's Lemma Application}
+	\framesubtitle{Counting Fixed Points}
+
+	% TODO: Number of orbits formula
+	% - Formula: # orbits = (1/|G|) Σ_{g∈G} |Fix(g)|
+	% - Symmetry counting problem
+	% - Lean proof sketch or reference
+
+\end{frame}
+
+%----------------------------------------------------------------------------------------
+%	SECTION 5: THEOREM 16.3 - Orbit-Stabilizer (5 slides)
+%----------------------------------------------------------------------------------------
+
+\begin{frame}[fragile]
+	\frametitle{Theorem 16.3: Permutation Representation}
+
+	\begin{block}{Theorem 16.3}
+		Every group action induces a group homomorphism $\phi: G \to \mathrm{Sym}(X)$ such that:
+		\[ \phi(g)(x) = g \cdot x \quad \text{for all } g \in G, x \in X \]
+	\end{block}
+
+	\vspace{1em}
+
+	\textit{This theorem connects group actions with permutation representations.}
+
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}[fragile]
+	\frametitle{Proof Strategy: 5 Steps}
+
+	\begin{enumerate}
+		\item \textbf{Define $\sigma_g$}: For each $g \in G$, construct $\sigma_g: X \to X$
+
+		\item \textbf{Prove Bijection}: Show $\sigma_g$ is bijective (left/right inverse)
+
+		\item \textbf{Construct $\phi$}: Package $\sigma_g$ as $\phi(g) \in \mathrm{Sym}(X)$
+
+		\item \textbf{Verify Homomorphism}: Prove $\phi(g_1 g_2) = \phi(g_1) \circ \phi(g_2)$
+
+		\item \textbf{Package Theorem}: Combine all pieces into final statement
+	\end{enumerate}
+
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}[fragile]
+	\frametitle{Step 1-2: Define $\sigma_g$ \& Prove Bijection}
+
+	\begin{columns}[T]
+		\begin{column}{0.48\linewidth}
+			\textbf{Define $\sigma_g$}\\[0.5em]
+
+			\begin{minted}[fontsize=\tiny,linenos=false]{lean}
+def sigma (g : G) : X → X :=
+  fun x => 
+    GroupAction.act g x
+			\end{minted}
+		\end{column}
+		\begin{column}{0.48\linewidth}
+			\textbf{Prove Bijective}\\[0.5em]
+
+			\begin{minted}[fontsize=\tiny,linenos=false]{lean}
+def sigmaPerm (g : G) : 
+    Equiv.Perm X :=
+  { toFun := sigma g
+    invFun := sigma g⁻¹
+    left_inv := by
+      intro x
+      calc GroupAction.act g⁻¹ 
+           (GroupAction.act g x)
+        = GroupAction.act 
+          (g⁻¹ * g) x := by
+          rw [←ga_mul]
+        _ = x := by simp
+    right_inv := ... }
+			\end{minted}
+		\end{column}
+	\end{columns}
+
+	\vspace{0.8em}
+
+	\small \textbf{Key insight:} $g^{-1}$ provides the inverse map.
+
+		{\tiny Source: \githuburl{v1.2.1-lean-only}{/Permutation.lean:24-67}}
+
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}[fragile]
+	\frametitle{Step 3-4: Construct $\phi$ \& Verify Homomorphism}
+
+	\textbf{Define $\phi: G \to \mathrm{Sym}(X)$}\\[0.5em]
+
+	\begin{minted}[fontsize=\tiny,linenos=false]{lean}
+def phi : G → Equiv.Perm X :=
+  fun g => sigmaPerm g
+	\end{minted}
+
+	\vspace{1em}
+
+	\textbf{Prove $\phi(g_1 g_2) = \phi(g_1) \circ \phi(g_2)$}\\[0.5em]
+
+	\begin{minted}[fontsize=\tiny,linenos=false]{lean}
+lemma phi_mul (g₁ g₂ : G) : 
+    phi (g₁ * g₂) = phi g₁ * phi g₂ := by
+  apply Equiv.ext
+  intro x
+  calc phi (g₁ * g₂) x 
+      = GroupAction.act (g₁ * g₂) x := rfl
+    _ = GroupAction.act g₁ 
+        (GroupAction.act g₂ x) := 
+        GroupAction.ga_mul g₁ g₂ x
+	\end{minted}
+
+	\vspace{0.8em}
+
+	\small \textbf{Highlight:} Uses \leancode{GroupAction.ga_mul} axiom for associativity.
+
+		{\tiny Source: \githuburl{v1.2.1-lean-only}{/Permutation.lean:69-93}}
+
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}[fragile]
+	\frametitle{Step 5: Package the Theorem}
+
+	\textbf{Final Lean Theorem}\\[0.8em]
+
+	\begin{minted}[fontsize=\tiny,linenos=false]{lean}
+theorem group_action_to_perm_representation :
+  ∃ (φ : G → Equiv.Perm X),
+    (∀ g x, φ g x = GroupAction.act g x) ∧
+    (∀ g₁ g₂, φ (g₁ * g₂) = φ g₁ * φ g₂) ∧
+    (φ 1 = 1) := by
+  exact ⟨phi, ⟨phi_apply, ⟨phi_mul, phi_one⟩⟩⟩
+	\end{minted}
+
+	\vspace{1em}
+
+	\textbf{Proof by construction:} We exhibit $\phi$ and verify all properties.
+	\begin{itemize}
+		\item Action property: $\phi(g)(x) = g \cdot x$
+		\item Homomorphism property: $\phi(g_1 g_2) = \phi(g_1) \circ \phi(g_2)$
+		\item Identity property: $\phi(1) = \text{id}$
+	\end{itemize}
+
+	{\tiny Source: \githuburl{v1.2.1-lean-only}{/Permutation.lean:102-114}}
+
+\end{frame}
+
+%----------------------------------------------------------------------------------------
+%	SECTION 6: THEOREM 16.12 (2 slides)
+%----------------------------------------------------------------------------------------
+
+\begin{frame}[fragile]
+	\frametitle{Theorem 16.12: Stabilizer Subgroup}
+
+	\begin{columns}[T]
+		\begin{column}{0.48\linewidth}
+			\textbf{Mathematics}\\[0.5em]
+
+			\textbf{Definition:} The \textbf{stabilizer} of $x \in X$ is:
+			\[ G_x = \{g \in G \mid g \cdot x = x\} \]
+
+			\vspace{1em}
+
+			\textbf{Theorem 16.12:} $G_x$ is a subgroup of $G$
+
+			\vspace{0.8em}
+
+			\textbf{Proof requires:}
+			\begin{enumerate}
+				\item $1 \in G_x$ (identity)
+				\item $g_1, g_2 \in G_x \Rightarrow g_1 g_2 \in G_x$ (closure)
+				\item $g \in G_x \Rightarrow g^{-1} \in G_x$ (inverses)
+			\end{enumerate}
+		\end{column}
+		\begin{column}{0.48\linewidth}
+			\textbf{Lean Structure}\\[0.5em]
+
+			\begin{minted}[fontsize=\tiny,linenos=false]{lean}
+def stabilizerSet (x : X) : 
+    Set G :=
+  { g : G | 
+    GroupAction.act g x = x }
+
+def stabilizer (x : X) : 
+    Subgroup G := 
+  { carrier := stabilizerSet x
+    one_mem' := ...
+    mul_mem' := ...
+    inv_mem' := ... }
+			\end{minted}
+
+			\vspace{0.5em}
+
+			\small Lean requires explicit proofs of all three subgroup axioms.
+		\end{column}
+	\end{columns}
+
+	{\tiny Source: \githuburl{v1.2.1-lean-only}{/Stabilizer.lean:22-56}}
+
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}[fragile]
+	\frametitle{Stabilizer in Lean: Definition \& Proof}
+
+	\textbf{Part 1: Define Stabilizer Set} (Stabilizer.lean:22-23)\\[0.5em]
+
+	\begin{minted}[fontsize=\tiny,linenos=false]{lean}
+def stabilizerSet (x : X) : Set G :=
+  { g : G | GroupAction.act g x = x }
+	\end{minted}
+
+	\vspace{1em}
+
+	\textbf{Part 2: Construct Subgroup} (Stabilizer.lean:26-54, key excerpts)\\[0.5em]
+
+	\begin{minted}[fontsize=\tiny,linenos=false]{lean}
+def stabilizer (x : X) : Subgroup G := by
+  exact
+    { carrier := stabilizerSet x
+      one_mem' := by simp [stabilizerSet, GroupAction.ga_one x]
+      mul_mem' := by
+        intro g₁ g₂ hg₁ hg₂
+        calc GroupAction.act (g₁ * g₂) x
+            = GroupAction.act g₁ (GroupAction.act g₂ x) := by 
+              simp using (GroupAction.ga_mul g₁ g₂ x)
+          _ = GroupAction.act g₁ x := by rw [hg₂]
+          _ = x := hg₁
+      inv_mem' := by
+        intro g hg
+        calc GroupAction.act g⁻¹ x
+            = GroupAction.act g⁻¹ (GroupAction.act g x) := by rw [hg]
+          _ = x := by simp [GroupAction.ga_mul, GroupAction.ga_one] }
+	\end{minted}
+
+	\vspace{0.8em}
+
+	\small \textbf{Highlight:} Each subgroup axiom proven with \leancode{calc} proofs.
+
+		{\tiny Source: \githuburl{v1.2.1-lean-only}{/Stabilizer.lean:22-56}}
+
+\end{frame}
+
+%----------------------------------------------------------------------------------------
+%	SECTION 7: REFLECTION (3 slides)
+%----------------------------------------------------------------------------------------
+
+\begin{frame}
+	\frametitle{What Lean Guarantees}
+
+	\begin{itemize}
+		\item[\checkmark] \textbf{Type Correctness}: All functions type-check, no runtime type errors
+
+		\item[\checkmark] \textbf{No Hidden Assumptions}: Every axiom explicitly declared
+
+		\item[\checkmark] \textbf{Axiom Matching}: Our proofs use only standard mathlib axioms (no choice beyond mathlib)
+
+		\item[\checkmark] \textbf{Subgroup Verification}: \leancode{Stabilizer} is proven to satisfy all subgroup axioms
+
+		\item[\checkmark] \textbf{Homomorphism Properties}: $\phi$ proven to preserve group structure
+	\end{itemize}
+
+	\vspace{1.5em}
+
+	\textit{Lean's proof assistant guarantees mathematical correctness—no gaps, no handwaving.}
+
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}
+	\frametitle{Challenges \& Lessons Learned}
+
+	\textbf{Technical Challenges:}
+	\begin{itemize}
+		\item \textbf{Typeclass Resolution}: Manual instance declarations for \leancode{GroupAction}
+		\item \textbf{Equiv Mechanism}: Understanding \leancode{Equiv.Perm} vs raw bijections
+		\item \textbf{Coercions}: Handling coercion from \leancode{Subgroup H} to \leancode{H} in examples
+		\item \textbf{Function Extensionality}: Using \leancode{Equiv.ext} to prove permutation equality
+	\end{itemize}
+
+	\vspace{1em}
+
+	\textbf{Lessons:}
+	\begin{itemize}
+		\item Read Mathlib source code for patterns
+		\item Use \leancode{calc} mode for clarity
+		\item Lean enforces rigor: every step must be justified
+	\end{itemize}
+
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}
+	\frametitle{Conclusion \& Future Work}
+
+	\textbf{What We Achieved:}
+	\begin{itemize}
+		\item Formalized core group action theory in Lean 4
+		\item 7 concrete examples from abstract algebra
+		\item 2 fundamental theorems with complete proofs
+	\end{itemize}
+
+	\vspace{1.5em}
+
+	\textbf{Future Extensions:}
+	\begin{itemize}
+		\item \textbf{Orbit-Stabilizer Theorem}: $|G| = |\text{Orb}(x)| \cdot |G_x|$
+		\item \textbf{Burnside's Lemma}: Counting orbits under symmetry
+		\item \textbf{Applications}: Cayley's Theorem, Sylow Theorems
+		\item \textbf{Category Theory}: Generalizations to functors and natural transformations
+	\end{itemize}
+
+\end{frame}
+
+%----------------------------------------------------------------------------------------
+%	THANK YOU SLIDE
+%----------------------------------------------------------------------------------------
+
+\begingroup
+\setbeamercolor{background canvas}{bg=ICLBlue}
+\setbeamercolor{normal text}{fg=white}\usebeamercolor[fg]{normal text}
+\setbeamercolor{page number in head/foot}{fg=white}
+
+\begin{frame}[plain]
+	\vfill
+	\centering
+
+	{\Huge\textbf{Thank You!}}
+
+	\vspace{2em}
+
+	{\large\textit{Questions?}}
+
+	\vspace{2em}
+
+	\hrule
+
+	\vspace{2em}
+
+	{\large\textbf{GitHub Repository}}\\[0.5em]
+	\small\url{https://github.com/FrankieeW/GroupAction}\\
+	Version: \texttt{v1.2.1-lean-only} (stable)
+
+	\vspace{2em}
+
+	{\large\textbf{Contact}}\\[0.5em]
+	\small Frankie Feng-Cheng WANG\\
+	Department of Mathematics, Imperial College London\\
+	MATH70040 Formalising Mathematics
+
+	\vfill
+\end{frame}
+\endgroup
+
+%----------------------------------------------------------------------------------------
+
+\end{document}
