@@ -61,3 +61,26 @@ open main.pdf
 - Greenfield: No slides yet
 - Coordinate with Report for content reuse
 - Use `/scientific-slides` skill for structure
+
+## GITIGNORE
+
+```
+# LaTeX build artifacts
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+
+# PDF output
+output/*.pdf
+
+# Editor
+.vscode/
+.DS_Store
+
+# Environment
+.env
+```
